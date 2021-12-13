@@ -6,9 +6,16 @@ import { useMutation, useQueryClient } from 'react-query';
 import { api } from '../../services/api';
 import { FileInput } from '../Input/FileInput';
 import { TextInput } from '../Input/TextInput';
+import { m } from 'framer-motion';
 
 interface FormAddImageProps {
   closeModal: () => void;
+}
+
+interface  newImageData {
+  url:string;
+  title:string;
+  description:string;
 }
 
 export function FormAddImage({ closeModal }: FormAddImageProps): JSX.Element {
@@ -52,9 +59,16 @@ export function FormAddImage({ closeModal }: FormAddImageProps): JSX.Element {
 
   const queryClient = useQueryClient();
   const mutation = useMutation(
-    // TODO MUTATION API POST REQUEST,
+    async (image: newImageData) => {
+      await api.post('/api/images', {
+        ...image,
+        url:imageUrl
+      })
+    },
     {
-      // TODO ONSUCCESS MUTATION
+      onSuccess: () => {
+        queryClient.invalidateQueries('images')
+      }
     }
   );
 
@@ -68,15 +82,33 @@ export function FormAddImage({ closeModal }: FormAddImageProps): JSX.Element {
   } = useForm();
   const { errors } = formState;
 
-  const onSubmit = async (data: Record<string, unknown>): Promise<void> => {
+  const onSubmit = async (data: newImageData): Promise<void> => {
     try {
-      // TODO SHOW ERROR TOAST IF IMAGE URL DOES NOT EXISTS
-      // TODO EXECUTE ASYNC MUTATION
-      // TODO SHOW SUCCESS TOAST
+      if(!imageUrl){
+        toast({
+          status:'error',
+          title:'Imagem não adicionada',
+          description:'É preciso adicionar o upload  de uma imagem antes de realizar o cadastro.'
+        });
+        return;
+      }
+      await mutation.mutateAsync(data);
+      toast({
+        status:'success',
+        title:'Imagem cadastrada',
+        description:'Sua imagem foi cadastrada com sucesso.'
+      });
     } catch {
-      // TODO SHOW ERROR TOAST IF SUBMIT FAILED
+      toast({
+        status:'error',
+        title:'Falha no cadastro',
+        description:'Ocorreu um erro ao tentar cadastrar a sua imagem'
+      });
     } finally {
-      // TODO CLEAN FORM, STATES AND CLOSE MODAL
+      reset();
+      setImageUrl('');
+      setLocalImageUrl('');
+      closeModal();
     }
   };
 
@@ -89,20 +121,21 @@ export function FormAddImage({ closeModal }: FormAddImageProps): JSX.Element {
           setLocalImageUrl={setLocalImageUrl}
           setError={setError}
           trigger={trigger}
-          // TODO SEND IMAGE ERRORS
-          // TODO REGISTER IMAGE INPUT WITH VALIDATIONS
+          {...register('image', formValidations.image)}
+          error={errors.image}
+
         />
 
         <TextInput
           placeholder="Título da imagem..."
-          // TODO SEND TITLE ERRORS
-          // TODO REGISTER TITLE INPUT WITH VALIDATIONS
+          {...register('title', formValidations.title)}
+          error={errors.title}
         />
 
         <TextInput
           placeholder="Descrição da imagem..."
-          // TODO SEND DESCRIPTION ERRORS
-          // TODO REGISTER DESCRIPTION INPUT WITH VALIDATIONS
+          {...register('description', formValidations.description)}
+          error={errors.description}
         />
       </Stack>
 
